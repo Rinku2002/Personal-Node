@@ -187,13 +187,27 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
         upload_path = html.escape("/upload/" + relative_path, quote=True)
 
-        back_link = ""
+        # Decode path for clear display to the user
+        display_path = "/" + urllib.parse.unquote(relative_path) if relative_path else "/"
+        safe_display_path = html.escape(display_path)
+
+        # Container using align-items: flex-start so the back button stays aligned to the top line
+        back_link_html = (
+            '<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; max-width: 100%;">'
+        )
+        
         if relative_path:
             parent = os.path.dirname(relative_path).replace("\\", "/")
-            back_link = (
-                f'<a href="/files/{html.escape(parent)}" title="Go Back" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 6px; font-family: sans-serif; font-size: 16px; font-weight: bold; margin-bottom: 12px;">'
+            back_link_html += (
+                f'<a href="/files/{html.escape(parent)}" title="Go Back" style="display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 6px; font-family: sans-serif; font-size: 16px; font-weight: bold;">'
                 "←</a>"
             )
+        
+        # word-break: break-word allows wrapping across multiple lines without scrollbars
+        back_link_html += (
+            f'<span style="font-family: sans-serif; font-size: 16px; font-weight: 600; color: #2d3748; '
+            f'word-break: break-word; overflow-wrap: anywhere; line-height: 32px;">{safe_display_path}</span></div>'
+        )
 
         file_list = ""
         for item in sorted(os.listdir(folder_path)):
@@ -215,7 +229,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         page = render_template(
             "file_browser.html",
             upload_path=upload_path,
-            back_link=back_link,
+            back_link=back_link_html,
             file_list=file_list,
         )
         self._send_html(page)
