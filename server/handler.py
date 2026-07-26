@@ -191,8 +191,8 @@ class SimpleHandler(BaseHTTPRequestHandler):
         if relative_path:
             parent = os.path.dirname(relative_path).replace("\\", "/")
             back_link = (
-                f'<a href="/files/{html.escape(parent)}">'
-                "&lt; Back</a><br><br>"
+                f'<a href="/files/{html.escape(parent)}" title="Go Back" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 6px; font-family: sans-serif; font-size: 16px; font-weight: bold; margin-bottom: 12px;">'
+                "←</a>"
             )
 
         file_list = ""
@@ -205,12 +205,12 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 href = html.escape(
                     build_path_url("/files", relative_path, encoded_item)
                 )
-                file_list += f'[Folder] <a href="{href}">{safe_name}</a><br>'
+                file_list += f'<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: sans-serif; font-size: 14px; border-bottom: 1px solid #f0f0f0;"><span style="font-size: 16px;">📁</span><a href="{href}" style="color: #2b6cb0; text-decoration: none; font-weight: 600;">{safe_name}</a></div>'
             else:
                 href = html.escape(
                     build_path_url("/view", relative_path, encoded_item)
                 )
-                file_list += f'[File] <a href="{href}">{safe_name}</a><br>'
+                file_list += f'<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: sans-serif; font-size: 14px; border-bottom: 1px solid #f0f0f0;"><span style="font-size: 16px;">📄</span><a href="{href}" style="color: #0066cc; text-decoration: none; font-weight: 500;">{safe_name}</a></div>'
 
         page = render_template(
             "file_browser.html",

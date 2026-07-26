@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My PC Files</title>
-<style>
-body { font-family: Arial, sans-serif; font-size: 18px; padding: 20px; }
-a { text-decoration: none; line-height: 35px; word-break: break-all; }
-.toolbar { margin-bottom: 16px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My PC Files</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 18px; padding: 20px; }
+        a { text-decoration: none; line-height: 35px; word-break: break-all; }
+        .toolbar { margin-bottom: 16px; }
+    </style>
 </head>
 <body>
-<h2>My PC Files</h2>
-<div class="toolbar">
-    <a href="/logout">Log out</a>
-</div>
-<form action="{{upload_path}}" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit">Upload</button>
-</form>
-<br>
-{{back_link}}
-{{file_list}}
+    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; font-family: sans-serif;">
+        <h2 style="font-family: sans-serif; font-size: 22px; font-weight: 600; color: #1a202c; margin: 0; display: flex; align-items: center; gap: 8px;">
+            📁 My PC Files
+        </h2>
+        <a href="/logout" style="display: inline-block; padding: 8px 16px; background-color: #dc3545; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600; line-height: 1;">
+            Log out
+        </a>
+    </div>
+    <form action="{{upload_path}}" method="post" enctype="multipart/form-data" style="display: flex; align-items: center; gap: 8px; padding: 6px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; font-family: sans-serif; max-width: 100%; box-sizing: border-box;">
+        <input type="file" name="file" required style="font-size: 13px; color: #4a5568; cursor: pointer; min-width: 0; flex: 1;">
+        <button type="submit" style="padding: 6px 12px; background-color: #0066cc; color: #ffffff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;">Upload</button>
+    </form>
+    <br><hr>
+    {{back_link}}
+    {{file_list}}
 </body>
 </html>
