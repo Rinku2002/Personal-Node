@@ -5,6 +5,7 @@ import shutil
 import winreg
 import ctypes
 
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if os.path.basename(CURRENT_DIR).lower() == "bin":
@@ -12,13 +13,47 @@ if os.path.basename(CURRENT_DIR).lower() == "bin":
 else:
     PROJECT_DIR = CURRENT_DIR
 
+
 BIN_DIR = os.path.join(PROJECT_DIR, "bin")
 VBS_FILE = os.path.join(BIN_DIR, "start-personal-node.vbs")
 CMD_FILE = os.path.join(BIN_DIR, "handle-personal-node.cmd")
 
 
+def load_env():
+    env_file = os.path.join(PROJECT_DIR, ".env")
+
+    if not os.path.exists(env_file):
+        return {}
+
+    env = {}
+
+    with open(env_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" in line:
+                key, value = line.split("=", 1)
+                env[key.strip()] = value.strip()
+
+    return env
+
+
+ENV = load_env()
+NGROK_DOMAIN = ENV.get("NGROK_DOMAIN")
+
+
 def create_start_vbs():
     print("[1/4] Creating start-personal-node.vbs...")
+
+    if NGROK_DOMAIN:
+        ngrok_command = (
+            f'ngrok http --domain={NGROK_DOMAIN} 8000'
+        )
+    else:
+        ngrok_command = "ngrok http 8000"
 
     vbs_content = f"""Set WshShell = CreateObject("WScript.Shell")
 
@@ -26,7 +61,7 @@ WshShell.Run "cmd /c taskkill /f /im ngrok.exe", 0, True
 
 WshShell.CurrentDirectory = "{PROJECT_DIR}"
 
-WshShell.Run "ngrok http 8000", 0, False
+WshShell.Run "{ngrok_command}", 0, False
 WshShell.Run "python main.py --prod", 0, False
 """
 
@@ -34,6 +69,11 @@ WshShell.Run "python main.py --prod", 0, False
         f.write(vbs_content)
 
     print("Created:", VBS_FILE)
+
+    if NGROK_DOMAIN:
+        print("Using ngrok domain:", NGROK_DOMAIN)
+    else:
+        print("No NGROK_DOMAIN found. Using random ngrok URL.")
 
 
 def add_vbs_to_startup():

@@ -55,3 +55,6 @@ Personal Node/
 ├── start.vbs                     # Background launcher script
 └── README.md
 ```
+
+ngrok config
+ - Set ngrok domain in `.env`. Check available domains: https://dashboard.ngrok.com/domains
