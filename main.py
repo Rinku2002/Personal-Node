@@ -9,6 +9,7 @@ import requests
 from http.server import HTTPServer
 
 from config import SERVER_PORT, SERVER_PORT_TEST, PROD_LOG_DIR
+from server.auth import is_auth_configured
 from email_service import send_live_link_email
 from server import SimpleHandler
 
@@ -103,6 +104,12 @@ def main():
     print(
         f"Starting {'production' if args.prod else 'test'} server on port {service_port}"
     )
+
+    if not is_auth_configured():
+        print(
+            "WARNING: FILE_AUTH_USERNAME and FILE_AUTH_PASSWORD are not set. "
+            "File browsing, viewing, and uploads are disabled."
+        )
 
     ngrok_url = wait_for_ngrok_url(service_port)
 

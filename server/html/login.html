@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<style>
+body { font-family: Arial, sans-serif; font-size: 18px; padding: 20px; max-width: 420px; }
+label { display: block; margin-top: 12px; }
+input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+button { margin-top: 16px; padding: 8px 16px; }
+.error { color: #b00020; margin-top: 12px; }
+.note { color: #555; font-size: 14px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h2>Login</h2>
+<p>Sign in to browse and upload files.</p>
+{{error_message}}
+<form method="post" action="/login">
+    <input type="hidden" name="next" value="{{next_url}}">
+    <label for="username">Username</label>
+    <input id="username" name="username" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+</form>
+<p class="note">Your session stays active for {{session_days}} days, then you must sign in again.</p>
+</body>
+</html>

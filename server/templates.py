@@ -1,16 +1,16 @@
-"""HTML templates for the file browser."""
+"""Load HTML templates from server/html/."""
 
-FILE_BROWSER_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My PC Files</title>
-<style>
-body { font-family: Arial, sans-serif; font-size: 18px; padding: 20px; }
-a { text-decoration: none; line-height: 35px; word-break: break-all; }
-</style>
-</head>
-<body>
-<h2>My PC Files</h2>
-"""
+from pathlib import Path
+
+HTML_DIR = Path(__file__).resolve().parent / "html"
+
+
+def render_template(name, **context):
+    """Read an HTML file and replace {{placeholders}} with escaped values."""
+    template_path = HTML_DIR / name
+    content = template_path.read_text(encoding="utf-8")
+
+    for key, value in context.items():
+        content = content.replace(f"{{{{{key}}}}}", str(value))
+
+    return content
