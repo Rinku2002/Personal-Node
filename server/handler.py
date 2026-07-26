@@ -1,8 +1,9 @@
-"""HTTP request handler for browsing and viewing files."""
+"""HTTP request handler for browsing, viewing, creating folders, and deleting files."""
 
 import html
 import mimetypes
 import os
+import shutil
 import urllib.parse
 from email.parser import BytesParser
 from email.policy import default
@@ -26,7 +27,17 @@ HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
-    """HTTP handler for the home page, file browser, and file viewing."""
+    """HTTP handler for the home page, file browser, and file management."""
+
+    # ----------------------------------------------------------------------
+    # Helper Utilities
+    # ----------------------------------------------------------------------
+
+    def _is_safe_path(self, target_path):
+        """Ensure target path resides inside ROOT_FOLDER to prevent path traversal."""
+        abs_root = os.path.abspath(ROOT_FOLDER)
+        abs_target = os.path.abspath(target_path)
+        return os.path.commonpath([abs_root, abs_target]) == abs_root
 
     def _send_html(self, content, status=200, extra_headers=None):
         body = content.encode("utf-8")
@@ -72,6 +83,16 @@ class SimpleHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length).decode("utf-8")
         return urllib.parse.parse_qs(body)
 
+    def _get_query_param(self, name, default=""):
+        query = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(query)
+        values = params.get(name, [])
+        return values[0] if values else default
+
+    # ----------------------------------------------------------------------
+    # Request Dispatchers
+    # ----------------------------------------------------------------------
+
     def do_GET(self):
         path = urllib.parse.unquote(self.path.split("?", 1)[0])
 
@@ -104,7 +125,19 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.upload_file(path)
             return
 
+        if path.startswith("/mkdir"):
+            self.create_folder(path)
+            return
+
+        if path.startswith("/delete"):
+            self.delete_item(path)
+            return
+
         self.send_error(404)
+
+    # ----------------------------------------------------------------------
+    # Auth Views
+    # ----------------------------------------------------------------------
 
     def show_login(self):
         if not is_auth_configured():
@@ -168,11 +201,9 @@ class SimpleHandler(BaseHTTPRequestHandler):
         clear_session_cookie(self)
         self.end_headers()
 
-    def _get_query_param(self, name, default=""):
-        query = urllib.parse.urlparse(self.path).query
-        params = urllib.parse.parse_qs(query)
-        values = params.get(name, [])
-        return values[0] if values else default
+    # ----------------------------------------------------------------------
+    # File Operations Views
+    # ----------------------------------------------------------------------
 
     def show_files(self, url_path):
         if not self._require_file_auth():
@@ -181,31 +212,29 @@ class SimpleHandler(BaseHTTPRequestHandler):
         relative_path = url_path.replace("/files", "").strip("/")
         folder_path = os.path.join(ROOT_FOLDER, relative_path)
 
-        if not os.path.exists(folder_path):
+        if not self._is_safe_path(folder_path) or not os.path.exists(folder_path):
             self.send_error(404, "Folder not found")
             return
 
         upload_path = html.escape("/upload/" + relative_path, quote=True)
+        mkdir_path = html.escape("/mkdir/" + relative_path, quote=True)
 
-        # Decode path for clear display to the user
         display_path = "/" + urllib.parse.unquote(relative_path) if relative_path else "/"
         safe_display_path = html.escape(display_path)
 
-        # Container using align-items: flex-start so the back button stays aligned to the top line
         back_link_html = (
-            '<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; max-width: 100%;">'
+            '<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; max-width: 100%;">'
         )
-        
+
         if relative_path:
             parent = os.path.dirname(relative_path).replace("\\", "/")
             back_link_html += (
-                f'<a href="/files/{html.escape(parent)}" title="Go Back" style="display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 6px; font-family: sans-serif; font-size: 16px; font-weight: bold;">'
+                f'<a href="/files/{html.escape(parent)}" title="Go Back" style="display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #f1f5f9; color: #475569; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold;">'
                 "←</a>"
             )
-        
-        # word-break: break-word allows wrapping across multiple lines without scrollbars
+
         back_link_html += (
-            f'<span style="font-family: sans-serif; font-size: 16px; font-weight: 600; color: #2d3748; '
+            f'<span style="font-size: 16px; font-weight: 600; color: #1e293b; '
             f'word-break: break-word; overflow-wrap: anywhere; line-height: 32px;">{safe_display_path}</span></div>'
         )
 
@@ -215,24 +244,128 @@ class SimpleHandler(BaseHTTPRequestHandler):
             encoded_item = urllib.parse.quote(item, safe="")
             safe_name = html.escape(item)
 
-            if os.path.isdir(item_path):
-                href = html.escape(
-                    build_path_url("/files", relative_path, encoded_item)
-                )
-                file_list += f'<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: sans-serif; font-size: 14px; border-bottom: 1px solid #f0f0f0;"><span style="font-size: 16px;">📁</span><a href="{href}" style="color: #2b6cb0; text-decoration: none; font-weight: 600;">{safe_name}</a></div>'
+            item_rel_path = (relative_path + "/" + item).strip("/")
+            delete_action_url = html.escape("/delete/" + item_rel_path)
+
+            is_dir = os.path.isdir(item_path)
+            
+            # SVG File & Directory Icons
+            if is_dir:
+                icon_svg = '<svg style="width:20px;height:20px;stroke:#2563eb;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>'
+                base_route = "/files"
+                text_color = "#1d4ed8"
             else:
-                href = html.escape(
-                    build_path_url("/view", relative_path, encoded_item)
-                )
-                file_list += f'<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: sans-serif; font-size: 14px; border-bottom: 1px solid #f0f0f0;"><span style="font-size: 16px;">📄</span><a href="{href}" style="color: #0066cc; text-decoration: none; font-weight: 500;">{safe_name}</a></div>'
+                icon_svg = '<svg style="width:20px;height:20px;stroke:#64748b;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'
+                base_route = "/view"
+                text_color = "#334155"
+
+            href = html.escape(build_path_url(base_route, relative_path, encoded_item))
+
+            # Item row with SVG 3-dot menu and SVG trash icon
+            file_list += f"""
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; font-size: 14px; border-bottom: 1px solid #f1f5f9;">
+                <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                    <span style="flex-shrink: 0; display: flex; align-items: center;">{icon_svg}</span>
+                    <a href="{href}" style="color: {text_color}; text-decoration: none; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">{safe_name}</a>
+                </div>
+                <details style="position: relative; cursor: pointer;">
+                    <summary style="list-style: none; user-select: none; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center;">
+                        <svg style="width:18px;height:18px;stroke:#94a3b8;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </summary>
+                    <div style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 10; min-width: 130px; padding: 4px 0;">
+                        <form action="{delete_action_url}" method="POST" onsubmit="return confirm('Delete {safe_name}?');" style="margin: 0;">
+                            <button type="submit" style="width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; font-size: 13px; color: #ef4444; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                <svg style="width:15px;height:15px;stroke:#ef4444;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+            """
 
         page = render_template(
             "file_browser.html",
             upload_path=upload_path,
+            mkdir_path=mkdir_path,
             back_link=back_link_html,
             file_list=file_list,
         )
         self._send_html(page)
+
+    def create_folder(self, url_path):
+        """Handle directory creation."""
+        if not self._require_file_auth():
+            return
+
+        relative_path = url_path.replace("/mkdir", "").strip("/")
+        folder_path = os.path.join(ROOT_FOLDER, relative_path)
+
+        if not self._is_safe_path(folder_path) or not os.path.isdir(folder_path):
+            self.send_error(400, "Invalid base directory")
+            return
+
+        form = self._parse_form_body()
+        new_folder_name = form.get("foldername", [""])[0].strip()
+
+        if not new_folder_name or "/" in new_folder_name or "\\" in new_folder_name:
+            page = render_template(
+                "error.html",
+                title="Invalid Name",
+                message="Folder name cannot be empty or contain slashes.",
+            )
+            self._send_html(page, status=400)
+            return
+
+        target_dir = os.path.join(folder_path, new_folder_name)
+
+        if not self._is_safe_path(target_dir):
+            self.send_error(403, "Access denied")
+            return
+
+        try:
+            os.makedirs(target_dir, exist_ok=False)
+            self._redirect(f"/files/{relative_path}")
+        except FileExistsError:
+            page = render_template(
+                "error.html",
+                title="Folder Exists",
+                message="A file or folder with that name already exists.",
+            )
+            self._send_html(page, status=400)
+        except Exception as error:
+            print(f"Mkdir failed: {repr(error)}")
+            self.send_error(500, "Could not create folder")
+
+    def delete_item(self, url_path):
+        """Handle deletion of files or empty/non-empty directories."""
+        if not self._require_file_auth():
+            return
+
+        relative_path = url_path.replace("/delete", "").strip("/")
+        target_path = os.path.join(ROOT_FOLDER, relative_path)
+
+        if not self._is_safe_path(target_path) or not os.path.exists(target_path):
+            self.send_error(404, "Item not found")
+            return
+
+        parent_rel_path = os.path.dirname(relative_path).replace("\\", "/")
+
+        try:
+            if os.path.isdir(target_path):
+                shutil.rmtree(target_path)
+            else:
+                os.remove(target_path)
+
+            self._redirect(f"/files/{parent_rel_path}")
+        except Exception as error:
+            print(f"Delete failed: {repr(error)}")
+            page = render_template(
+                "error.html",
+                title="Delete Failed",
+                message=f"Could not delete item: {html.escape(str(error))}",
+            )
+            self._send_html(page, status=500)
 
     def upload_file(self, url_path):
         if not self._require_file_auth():
@@ -242,7 +375,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             relative_path = url_path.replace("/upload", "").strip("/")
             folder_path = os.path.join(ROOT_FOLDER, relative_path)
 
-            if not os.path.isdir(folder_path):
+            if not self._is_safe_path(folder_path) or not os.path.isdir(folder_path):
                 page = render_template(
                     "error.html",
                     title="Folder not found",
@@ -280,6 +413,10 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     filename = os.path.basename(filename)
                     file_path = os.path.join(folder_path, filename)
 
+                    if not self._is_safe_path(file_path):
+                        self.send_error(403, "Access denied")
+                        return
+
                     with open(file_path, "wb") as file:
                         file.write(part.get_payload(decode=True))
 
@@ -315,7 +452,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             urllib.parse.unquote(relative_path),
         )
 
-        if not os.path.isfile(file_path):
+        if not self._is_safe_path(file_path) or not os.path.isfile(file_path):
             self.send_error(404, "File not found")
             return
 
