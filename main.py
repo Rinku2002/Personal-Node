@@ -123,4 +123,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except Exception as e:
+            print(f"Got some exception when running the server: {e}")
+            time.sleep(1)
