@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Games</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #f1f5f9;
+  padding: 20px 16px 32px;
+}
+
+header { text-align: center; margin-bottom: 28px; }
+header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+header p { font-size: 14px; color: #94a3b8; }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-card:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.game-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.game-icon.snake { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.game-icon.bubbles { background: linear-gradient(135deg, #38bdf8, #6366f1); }
+.game-icon.memory { background: linear-gradient(135deg, #f472b6, #ec4899); }
+.game-icon.whack { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+.game-icon.tictactoe { background: linear-gradient(135deg, #a78bfa, #8b5cf6); }
+.game-icon.reaction { background: linear-gradient(135deg, #34d399, #10b981); }
+.game-icon.breakout { background: linear-gradient(135deg, #f87171, #ef4444); }
+.game-icon.business { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.game-icon.ludo { background: linear-gradient(135deg, #f472b6, #db2777); }
+
+.game-info h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.game-info p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
+</style>
+</head>
+<body>
+<a class="back-link" href="/">← Home</a>
+
+<header>
+  <h1>Stress Relief Games</h1>
+  <p>Tap a game to play on your phone</p>
+</header>
+
+<div class="games-grid">
+  <a class="game-card" href="/games/snake">
+    <div class="game-icon snake">🐍</div>
+    <div class="game-info">
+      <h2>Snake</h2>
+      <p>Classic arcade snake. Swipe or use the D-pad to move.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/bubbles">
+    <div class="game-icon bubbles">🫧</div>
+    <div class="game-info">
+      <h2>Bubble Pop</h2>
+      <p>Tap floating bubbles to pop them. Relax and unwind.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/memory">
+    <div class="game-icon memory">🧠</div>
+    <div class="game-info">
+      <h2>Memory Match</h2>
+      <p>Flip cards and find matching pairs. Train your memory.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/whack">
+    <div class="game-icon whack">🔨</div>
+    <div class="game-info">
+      <h2>Whack-a-Mole</h2>
+      <p>Tap the moles before they hide. Fast and satisfying.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/tictactoe">
+    <div class="game-icon tictactoe">⭕</div>
+    <div class="game-info">
+      <h2>Tic Tac Toe</h2>
+      <p>Play against the computer. X goes first.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/reaction">
+    <div class="game-icon reaction">⚡</div>
+    <div class="game-info">
+      <h2>Reaction Tap</h2>
+      <p>Wait for green, then tap as fast as you can.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/breakout">
+    <div class="game-icon breakout">🧱</div>
+    <div class="game-info">
+      <h2>Breakout</h2>
+      <p>Bounce the ball and break all the bricks.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/business">
+    <div class="game-icon business">💼</div>
+    <div class="game-info">
+      <h2>Boardroom Tycoon</h2>
+      <p>4-player business strategy. Compete with friends on your phones.</p>
+    </div>
+  </a>
+
+  <a class="game-card" href="/games/ludo">
+    <div class="game-icon ludo">🎲</div>
+    <div class="game-info">
+      <h2>Ludo</h2>
+      <p>Classic 4-player board game. Roll dice, capture tokens, race home.</p>
+    </div>
+  </a>
+</div>
+</body>
+</html>

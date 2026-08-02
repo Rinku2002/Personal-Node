@@ -1,6 +1,7 @@
 """HTTP request handler for browsing, viewing, creating folders, and deleting files."""
 
 import html
+import json
 import mimetypes
 import os
 import shutil
@@ -22,8 +23,21 @@ from server.auth import (
 )
 from server.templates import render_template
 from server.urls import build_path_url
+from server.games import business as business_game
+from server.games import ludo as ludo_game
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
+JSON_CONTENT_TYPE = "application/json; charset=utf-8"
+
+GAMES = {
+    "snake": "snake.html",
+    "bubbles": "bubbles.html",
+    "memory": "memory.html",
+    "whack": "whack.html",
+    "tictactoe": "tictactoe.html",
+    "reaction": "reaction.html",
+    "breakout": "breakout.html",
+}
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
@@ -83,6 +97,21 @@ class SimpleHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length).decode("utf-8")
         return urllib.parse.parse_qs(body)
 
+    def _parse_json_body(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8")
+        if not body:
+            return {}
+        return json.loads(body)
+
+    def _send_json(self, data, status=200):
+        body = json.dumps(data).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", JSON_CONTENT_TYPE)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def _get_query_param(self, name, default=""):
         query = urllib.parse.urlparse(self.path).query
         params = urllib.parse.parse_qs(query)
@@ -112,6 +141,30 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.view_file(path)
             return
 
+        if path == "/games":
+            self.show_games()
+            return
+
+        if path == "/games/business":
+            self._send_html(render_template("business.html"))
+            return
+
+        if path.startswith("/games/business/api/"):
+            self.handle_business_api_get(path)
+            return
+
+        if path == "/games/ludo":
+            self._send_html(render_template("ludo.html"))
+            return
+
+        if path.startswith("/games/ludo/api/"):
+            self.handle_ludo_api_get(path)
+            return
+
+        if path.startswith("/games/"):
+            self.show_game(path.replace("/games/", ""))
+            return
+
         self._send_html(render_template("home.html"))
 
     def do_POST(self):
@@ -131,6 +184,185 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/delete"):
             self.delete_item(path)
+            return
+
+        if path.startswith("/games/business/api/"):
+            self.handle_business_api_post(path)
+            return
+
+        if path.startswith("/games/ludo/api/"):
+            self.handle_ludo_api_post(path)
+            return
+
+        self.send_error(404)
+
+    # ----------------------------------------------------------------------
+    # Games
+    # ----------------------------------------------------------------------
+
+    def show_games(self):
+        self._send_html(render_template("games.html"))
+
+    def show_game(self, game_name):
+        template = GAMES.get(game_name)
+        if not template:
+            self.send_error(404, "Game not found")
+            return
+        self._send_html(render_template(template))
+
+    def handle_business_api_get(self, path):
+        if path == "/games/business/api/state":
+            room = self._get_query_param("room")
+            player_id = self._get_query_param("player_id")
+            if not room:
+                self._send_json({"error": "Room code required."}, status=400)
+                return
+            result = business_game.get_state(room, player_id or None)
+            status = 404 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+        self.send_error(404)
+
+    def handle_business_api_post(self, path):
+        try:
+            data = self._parse_json_body()
+        except json.JSONDecodeError:
+            self._send_json({"error": "Invalid JSON."}, status=400)
+            return
+
+        if path == "/games/business/api/create":
+            name = (data.get("name") or "Player").strip()
+            if not name:
+                self._send_json({"error": "Name required."}, status=400)
+                return
+            self._send_json(business_game.create_room(name))
+            return
+
+        if path == "/games/business/api/join":
+            room = (data.get("room") or "").strip()
+            name = (data.get("name") or "").strip()
+            if not room or not name:
+                self._send_json({"error": "Room code and name required."}, status=400)
+                return
+            result = business_game.join_room(room, name)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/business/api/start":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            if not room or not player_id:
+                self._send_json({"error": "Room and player_id required."}, status=400)
+                return
+            result = business_game.start_game(room, player_id)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/business/api/action":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            action = (data.get("action") or "").strip()
+            if not room or not player_id or not action:
+                self._send_json({"error": "Room, player_id, and action required."}, status=400)
+                return
+            result = business_game.submit_action(room, player_id, action)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/business/api/leave":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            if not room or not player_id:
+                self._send_json({"error": "Room and player_id required."}, status=400)
+                return
+            self._send_json(business_game.leave_room(room, player_id))
+            return
+
+        self.send_error(404)
+
+    def handle_ludo_api_get(self, path):
+        if path == "/games/ludo/api/state":
+            room = self._get_query_param("room")
+            player_id = self._get_query_param("player_id")
+            if not room:
+                self._send_json({"error": "Room code required."}, status=400)
+                return
+            result = ludo_game.get_state(room, player_id or None)
+            status = 404 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+        self.send_error(404)
+
+    def handle_ludo_api_post(self, path):
+        try:
+            data = self._parse_json_body()
+        except json.JSONDecodeError:
+            self._send_json({"error": "Invalid JSON."}, status=400)
+            return
+
+        if path == "/games/ludo/api/create":
+            name = (data.get("name") or "Player").strip()
+            if not name:
+                self._send_json({"error": "Name required."}, status=400)
+                return
+            self._send_json(ludo_game.create_room(name))
+            return
+
+        if path == "/games/ludo/api/join":
+            room = (data.get("room") or "").strip()
+            name = (data.get("name") or "").strip()
+            if not room or not name:
+                self._send_json({"error": "Room code and name required."}, status=400)
+                return
+            result = ludo_game.join_room(room, name)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/ludo/api/start":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            if not room or not player_id:
+                self._send_json({"error": "Room and player_id required."}, status=400)
+                return
+            result = ludo_game.start_game(room, player_id)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/ludo/api/roll":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            if not room or not player_id:
+                self._send_json({"error": "Room and player_id required."}, status=400)
+                return
+            result = ludo_game.roll_dice(room, player_id)
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/ludo/api/move":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            token = data.get("token")
+            if not room or not player_id or token is None:
+                self._send_json({"error": "Room, player_id, and token required."}, status=400)
+                return
+            result = ludo_game.move_token(room, player_id, int(token))
+            status = 400 if "error" in result else 200
+            self._send_json(result, status=status)
+            return
+
+        if path == "/games/ludo/api/leave":
+            room = (data.get("room") or "").strip()
+            player_id = (data.get("player_id") or "").strip()
+            if not room or not player_id:
+                self._send_json({"error": "Room and player_id required."}, status=400)
+                return
+            self._send_json(ludo_game.leave_room(room, player_id))
             return
 
         self.send_error(404)

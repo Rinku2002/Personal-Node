@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Whack-a-Mole</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh; background: #422006;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9; padding: 12px; touch-action: manipulation;
+}
+.top-bar { max-width: 420px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center; }
+.back-link { color: #fcd34d; text-decoration: none; font-size: 14px; opacity: 0.8; }
+.score { font-size: 18px; font-weight: 700; color: #fbbf24; }
+.timer { font-size: 14px; color: #fde68a; }
+#grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  max-width: 420px; margin: 0 auto;
+}
+.hole {
+  aspect-ratio: 1; background: #78350f; border-radius: 50%;
+  display: flex; align-items: flex-end; justify-content: center;
+  overflow: hidden; border: 3px solid #92400e; position: relative;
+}
+.mole {
+  width: 70%; height: 70%; background: #a16207; border-radius: 50% 50% 40% 40%;
+  transform: translateY(100%); transition: transform 0.15s; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+.mole.up { transform: translateY(10%); }
+.overlay {
+  position: fixed; inset: 0; background: rgba(30,15,5,0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+}
+.overlay.hidden { display: none; }
+.overlay h2 { font-size: 28px; margin-bottom: 8px; color: #fbbf24; }
+.overlay p { color: #fde68a; margin-bottom: 20px; font-size: 18px; }
+.overlay button {
+  padding: 14px 32px; font-size: 16px; font-weight: 600; border: none;
+  border-radius: 10px; background: #f59e0b; color: #422006; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="/games">← Games</a>
+  <span class="score">Score: <span id="score">0</span></span>
+  <span class="timer"><span id="time">30</span>s</span>
+</div>
+<div id="grid"></div>
+
+<div class="overlay" id="startOverlay">
+  <h2>Whack-a-Mole</h2>
+  <p>Tap moles as they pop up. You have 30 seconds!</p>
+  <button id="startBtn">Start</button>
+</div>
+
+<div class="overlay hidden" id="endOverlay">
+  <h2>Time's Up!</h2>
+  <p>Score: <span id="finalScore">0</span></p>
+  <button id="restartBtn">Play Again</button>
+</div>
+
+<script>
+(function () {
+  const grid = document.getElementById("grid");
+  const scoreEl = document.getElementById("score");
+  const timeEl = document.getElementById("time");
+  const HOLES = 9;
+  let score, timeLeft, gameTimer, moleTimer, activeHole, playing;
+
+  for (let i = 0; i < HOLES; i++) {
+    const hole = document.createElement("div");
+    hole.className = "hole";
+    const mole = document.createElement("div");
+    mole.className = "mole";
+    mole.textContent = "🐹";
+    mole.addEventListener("click", () => whack(mole));
+    mole.addEventListener("touchend", e => { e.preventDefault(); whack(mole); });
+    hole.appendChild(mole);
+    grid.appendChild(hole);
+  }
+
+  const moles = grid.querySelectorAll(".mole");
+
+  function hideAll() {
+    moles.forEach(m => m.classList.remove("up"));
+    activeHole = -1;
+  }
+
+  function showMole() {
+    hideAll();
+    const idx = Math.floor(Math.random() * HOLES);
+    moles[idx].classList.add("up");
+    activeHole = idx;
+  }
+
+  function whack(mole) {
+    if (!playing || !mole.classList.contains("up")) return;
+    mole.classList.remove("up");
+    activeHole = -1;
+    score++;
+    scoreEl.textContent = score;
+  }
+
+  function tick() {
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if (timeLeft <= 0) endGame();
+  }
+
+  function endGame() {
+    playing = false;
+    clearInterval(gameTimer);
+    clearInterval(moleTimer);
+    hideAll();
+    document.getElementById("finalScore").textContent = score;
+    document.getElementById("endOverlay").classList.remove("hidden");
+  }
+
+  function startGame() {
+    document.getElementById("startOverlay").classList.add("hidden");
+    document.getElementById("endOverlay").classList.add("hidden");
+    score = 0;
+    timeLeft = 30;
+    playing = true;
+    scoreEl.textContent = "0";
+    timeEl.textContent = "30";
+    hideAll();
+    gameTimer = setInterval(tick, 1000);
+    moleTimer = setInterval(showMole, 700);
+    showMole();
+  }
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("restartBtn").addEventListener("click", startGame);
+})();
+</script>
+</body>
+</html>

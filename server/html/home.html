@@ -5,12 +5,126 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Personal Node</title>
 <style>
-body { font-family: Arial, sans-serif; font-size: 18px; padding: 20px; }
-a { text-decoration: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  padding: 24px 16px 40px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+header p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.nav-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.nav-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.nav-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.nav-icon.files { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.nav-icon.games { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.nav-icon.login { background: linear-gradient(135deg, #64748b, #475569); }
+
+.nav-info h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.nav-info p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.nav-info code {
+  font-size: 12px;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #475569;
+}
 </style>
 </head>
 <body>
-<h1>Hello! This is Manideep's Personal Host.</h1>
-<p><a href="/files">Browse files</a></p>
+<header>
+  <h1>Manideep's Personal Host</h1>
+  <p>Choose where you'd like to go</p>
+</header>
+
+<div class="nav-grid">
+  <a class="nav-card" href="/files">
+    <div class="nav-icon files">📁</div>
+    <div class="nav-info">
+      <h2>Browse Files</h2>
+      <p>Upload, view, and manage your files. <code>/files</code></p>
+    </div>
+  </a>
+
+  <a class="nav-card" href="/games">
+    <div class="nav-icon games">🎮</div>
+    <div class="nav-info">
+      <h2>Play Games</h2>
+      <p>Stress-relief mini games for your phone. <code>/games</code></p>
+    </div>
+  </a>
+
+  <a class="nav-card" href="/login">
+    <div class="nav-icon login">🔐</div>
+    <div class="nav-info">
+      <h2>Login</h2>
+      <p>Sign in to access protected routes. <code>/login</code></p>
+    </div>
+  </a>
+</div>
 </body>
 </html>

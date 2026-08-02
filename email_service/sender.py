@@ -7,10 +7,12 @@ from config import APP_PASSWORD, RECEIVER_EMAIL, SENDER_EMAIL
 
 
 def send_live_link_email(public_url):
-    """Email the public file browser link."""
+    """Email the public server base URL."""
+    base_url = public_url.rstrip("/")
     message = (
-        "Your personal file server is live:\n\n"
-        f"{public_url}/files"
+        "Your personal server is live:\n\n"
+        f"{base_url}\n\n"
+        "Open the link to see all available pages."
     )
 
     msg = MIMEText(message)
@@ -23,4 +25,4 @@ def send_live_link_email(public_url):
         server.login(SENDER_EMAIL, APP_PASSWORD)
         server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
 
-    print("Email sent with file access link!")
+    print("Email sent with server link!")

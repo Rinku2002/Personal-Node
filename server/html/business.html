@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Boardroom Tycoon</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(165deg, #0c1222 0%, #1a1f35 40%, #0f172a 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9;
+  padding: 12px 14px 28px;
+  touch-action: manipulation;
+}
+
+.back-link {
+  display: inline-block;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+header { text-align: center; margin-bottom: 20px; }
+header h1 { font-size: 22px; font-weight: 700; color: #fbbf24; }
+header p { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+.screen { display: none; max-width: 440px; margin: 0 auto; }
+.screen.active { display: block; }
+
+.card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary { background: #fbbf24; color: #1a1f35; }
+.btn-secondary { background: #334155; color: #f1f5f9; }
+.btn-danger { background: transparent; color: #f87171; border: 1px solid #7f1d1d; margin-top: 10px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:active:not(:disabled) { opacity: 0.85; }
+
+.divider {
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  margin: 16px 0;
+}
+
+.room-code {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: #fbbf24;
+  margin: 8px 0;
+}
+
+.share-hint { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 12px; }
+
+.player-list { list-style: none; }
+.player-list li {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.player-list li:last-child { border-bottom: none; }
+.badge { font-size: 11px; background: #334155; padding: 2px 8px; border-radius: 999px; color: #94a3b8; }
+.badge.host { background: #854d0e; color: #fde68a; }
+.badge.you { background: #1e40af; color: #bfdbfe; }
+
+.market-banner {
+  background: linear-gradient(90deg, #1e3a5f, #312e81);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid #4338ca;
+}
+.market-banner h3 { font-size: 15px; color: #a5b4fc; margin-bottom: 4px; }
+.market-banner p { font-size: 13px; color: #c7d2fe; }
+
+.round-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.round-bar span { color: #94a3b8; }
+.timer { color: #fbbf24; font-weight: 600; font-variant-numeric: tabular-nums; }
+.timer.urgent { color: #f87171; }
+
+.leaderboard .player-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 13px;
+}
+.leaderboard .player-row.you { background: rgba(59,130,246,0.1); margin: 0 -8px; padding: 10px 8px; border-radius: 8px; }
+.leaderboard .name { font-weight: 600; }
+.leaderboard .stats { color: #94a3b8; font-size: 12px; grid-column: 1 / -1; }
+.leaderboard .value { font-weight: 700; color: #fbbf24; text-align: right; }
+
+.actions-grid { display: grid; gap: 10px; margin-top: 14px; }
+.action-btn {
+  text-align: left;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.action-btn:active { background: #334155; }
+.action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.action-btn .title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.action-btn .desc { font-size: 12px; color: #94a3b8; }
+.action-btn .cost { font-size: 12px; color: #fbbf24; margin-top: 4px; }
+
+.waiting-msg {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.status-dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #475569;
+}
+.dot.done { background: #22c55e; }
+
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,15,30,0.92);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  padding: 20px;
+  overflow-y: auto;
+}
+.overlay.show { display: flex; }
+
+.overlay-card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid #334155;
+}
+.overlay-card h2 { font-size: 22px; margin-bottom: 12px; text-align: center; }
+.result-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #334155;
+  font-size: 13px;
+}
+.result-item:last-child { border-bottom: none; }
+.result-item strong { color: #fbbf24; }
+
+.error { color: #f87171; font-size: 13px; margin-bottom: 10px; text-align: center; }
+.hidden { display: none !important; }
+
+.trophy { font-size: 48px; text-align: center; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="/games" id="backLink">← Games</a>
+
+<header>
+  <h1>Boardroom Tycoon</h1>
+  <p>4-player business strategy · compete for the highest company value</p>
+</header>
+
+<!-- Entry screen -->
+<div id="entryScreen" class="screen active">
+  <div class="card">
+    <label>Your name</label>
+    <input id="nameInput" type="text" maxlength="20" placeholder="Enter your name" autocomplete="name">
+    <p id="entryError" class="error hidden"></p>
+    <button class="btn btn-primary" id="createBtn">Create Room &amp; Play</button>
+  </div>
+  <div class="divider">— or join a friend's room —</div>
+  <div class="card">
+    <label>Room code</label>
+    <input id="roomInput" type="text" maxlength="4" placeholder="e.g. ABCD" autocapitalize="characters" style="text-transform:uppercase; letter-spacing:4px; text-align:center; font-weight:700;">
+    <button class="btn btn-secondary" id="joinBtn">Join Room</button>
+  </div>
+</div>
+
+<!-- Lobby screen -->
+<div id="lobbyScreen" class="screen">
+  <div class="card">
+    <p class="share-hint">Share this code with up to 3 friends</p>
+    <div class="room-code" id="lobbyRoomCode">----</div>
+    <button class="btn btn-secondary" id="copyLinkBtn">Copy Invite Link</button>
+  </div>
+  <div class="card">
+    <h3 style="font-size:14px; color:#94a3b8; margin-bottom:8px;">Players (<span id="playerCount">0</span>/4)</h3>
+    <ul class="player-list" id="lobbyPlayers"></ul>
+  </div>
+  <button class="btn btn-primary hidden" id="startBtn">Start Game</button>
+  <p class="waiting-msg" id="lobbyWaiting">Waiting for host to start...</p>
+  <p class="waiting-msg hidden" id="lobbyHint"></p>
+  <button class="btn btn-danger" id="leaveLobbyBtn">Leave Room</button>
+</div>
+
+<!-- Game screen -->
+<div id="gameScreen" class="screen">
+  <div class="round-bar">
+    <span>Round <strong id="roundNum">1</strong> / <span id="totalRounds">10</span></span>
+    <span id="roundTimer" class="timer hidden"></span>
+    <span id="submitStatus"></span>
+  </div>
+
+  <div class="market-banner">
+    <h3 id="marketName">Market</h3>
+    <p id="marketDesc"></p>
+  </div>
+
+  <div class="card leaderboard">
+    <h3 style="font-size:14px; color:#94a3b8; margin-bottom:8px;">Leaderboard</h3>
+    <div id="leaderboard"></div>
+    <div class="status-dots" id="statusDots"></div>
+  </div>
+
+  <div id="actionSection">
+    <h3 style="font-size:14px; color:#94a3b8; margin-bottom:4px;">Choose your move</h3>
+    <div class="actions-grid" id="actionsGrid"></div>
+  </div>
+  <p class="waiting-msg hidden" id="gameWaiting">Move submitted — waiting for other players...</p>
+  <button class="btn btn-danger" id="leaveGameBtn">Leave Game</button>
+</div>
+
+<!-- Round results overlay -->
+<div class="overlay" id="roundOverlay">
+  <div class="overlay-card">
+    <h2>Round <span id="resultRound">1</span> Results</h2>
+    <div id="resultList"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" id="dismissRoundBtn">Continue</button>
+  </div>
+</div>
+
+<!-- Game over overlay -->
+<div class="overlay" id="endOverlay">
+  <div class="overlay-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winnerText">Game Over</h2>
+    <div id="finalBoard" class="leaderboard" style="margin:16px 0;"></div>
+    <button class="btn btn-primary" id="playAgainBtn">Back to Games</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE = { room: "biz_room", player: "biz_player", name: "biz_name" };
+
+  let roomCode = localStorage.getItem(STORAGE.room) || "";
+  let playerId = localStorage.getItem(STORAGE.player) || "";
+  let pollTimer = null;
+  let lastRoundSeen = 0;
+  let roundDeadline = null;
+  let timerInterval = null;
+  let isHost = false;
+  let lastState = null;
+
+  const $ = id => document.getElementById(id);
+
+  function saveSession(room, player, name) {
+    roomCode = room;
+    playerId = player;
+    localStorage.setItem(STORAGE.room, room);
+    localStorage.setItem(STORAGE.player, player);
+    localStorage.setItem(STORAGE.name, name);
+  }
+
+  function clearSession() {
+    roomCode = "";
+    playerId = "";
+    localStorage.removeItem(STORAGE.room);
+    localStorage.removeItem(STORAGE.player);
+    stopPoll();
+    $("roundOverlay").classList.remove("show");
+    $("endOverlay").classList.remove("show");
+    showScreen("entry");
+  }
+
+  function updateLeaveButtons(state) {
+    isHost = state.you.is_host;
+    const hostLabel = state.phase === "lobby" ? "Delete Room" : "Leave Game";
+    const guestLabel = state.phase === "lobby" ? "Leave Room" : "Leave Game";
+    const label = isHost ? hostLabel : guestLabel;
+    $("leaveLobbyBtn").textContent = label;
+    $("leaveGameBtn").textContent = label;
+  }
+
+  function showScreen(name) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    $(name + "Screen").classList.add("active");
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  async function api(path, body) {
+    const opts = body
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      : {};
+    const res = await fetch(path, opts);
+    return res.json();
+  }
+
+  function fmt(n) {
+    return "$" + n.toLocaleString();
+  }
+
+  function renderLobby(state) {
+    lastState = state;
+    updateLeaveButtons(state);
+    $("lobbyRoomCode").textContent = state.room;
+    $("playerCount").textContent = state.player_count;
+    const list = $("lobbyPlayers");
+    list.innerHTML = "";
+    state.players.forEach((p, i) => {
+      const li = document.createElement("li");
+      const badges = [];
+      if (i === 0) badges.push('<span class="badge host">Host</span>');
+      if (p.you) badges.push('<span class="badge you">You</span>');
+      li.innerHTML = `<span>${p.name}</span><span>${badges.join(" ")}</span>`;
+      list.appendChild(li);
+    });
+
+    const isHost = state.you.is_host;
+    const full = state.player_count >= state.max_players;
+    const canStart = state.player_count >= 2;
+
+    $("startBtn").classList.toggle("hidden", !isHost);
+    $("startBtn").disabled = !canStart;
+    $("startBtn").textContent = full
+      ? "Start Game (4/4 ready)"
+      : canStart
+        ? `Start Game (${state.player_count}/4 — can start early)`
+        : "Waiting for players...";
+    $("lobbyWaiting").classList.toggle("hidden", isHost);
+    $("lobbyHint").classList.toggle("hidden", full);
+    if (!full) {
+      const needed = state.max_players - state.player_count;
+      $("lobbyHint").textContent = needed === 1
+        ? "1 more friend can join before the room is full."
+        : `${needed} more friends can join. Share the invite link!`;
+    }
+  }
+
+  function updateRoundTimer() {
+    const el = $("roundTimer");
+    if (!roundDeadline) {
+      el.classList.add("hidden");
+      return;
+    }
+    const left = Math.max(0, Math.ceil((roundDeadline - Date.now()) / 1000));
+    el.classList.remove("hidden");
+    el.textContent = left + "s left";
+    el.classList.toggle("urgent", left <= 15);
+    if (left <= 0) refreshState();
+  }
+
+  function setRoundDeadline(secondsLeft) {
+    if (secondsLeft == null) {
+      roundDeadline = null;
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      updateRoundTimer();
+      return;
+    }
+    roundDeadline = Date.now() + secondsLeft * 1000;
+    if (!timerInterval) timerInterval = setInterval(updateRoundTimer, 1000);
+    updateRoundTimer();
+  }
+
+  function renderLeaderboard(players, container) {
+    container.innerHTML = "";
+    const sorted = [...players].sort((a, b) => b.value - a.value);
+    sorted.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "player-row" + (p.you ? " you" : "");
+      row.innerHTML = `
+        <span class="name">${p.name}${p.you ? " (you)" : ""}</span>
+        <span class="value">${fmt(p.value)}</span>
+        <span class="stats">Cash ${fmt(p.cash)} · Products ${p.products} · Rep ${p.reputation} · Team ${p.efficiency}</span>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function renderGame(state) {
+    lastState = state;
+    updateLeaveButtons(state);
+    $("roundNum").textContent = state.round;
+    $("totalRounds").textContent = state.total_rounds;
+    $("marketName").textContent = state.market.name;
+    $("marketDesc").textContent = state.market.desc;
+
+    renderLeaderboard(state.players, $("leaderboard"));
+
+    const dots = $("statusDots");
+    dots.innerHTML = "";
+    state.players.forEach(p => {
+      const d = document.createElement("div");
+      d.className = "dot" + (p.submitted ? " done" : "");
+      d.title = p.name + (p.submitted ? " — ready" : " — thinking");
+      dots.appendChild(d);
+    });
+
+    const submitted = state.you.submitted;
+    $("actionSection").classList.toggle("hidden", submitted);
+    $("gameWaiting").classList.toggle("hidden", !submitted);
+    $("submitStatus").textContent = submitted ? "✓ Submitted" : "";
+    setRoundDeadline(state.phase === "playing" && !submitted ? state.round_seconds_left : null);
+
+    const grid = $("actionsGrid");
+    grid.innerHTML = "";
+    state.actions.forEach(a => {
+      const btn = document.createElement("button");
+      btn.className = "action-btn";
+      btn.disabled = submitted || state.phase !== "playing";
+      btn.innerHTML = `
+        <div class="title">${a.icon} ${a.name}</div>
+        <div class="desc">${a.desc}</div>
+        ${a.cost ? `<div class="cost">Cost: ${fmt(a.cost)}</div>` : ""}
+      `;
+      btn.addEventListener("click", () => submitAction(a.id));
+      grid.appendChild(btn);
+    });
+  }
+
+  function showRoundResults(lastRound) {
+    if (!lastRound || lastRound.round === lastRoundSeen) return;
+    lastRoundSeen = lastRound.round;
+    $("resultRound").textContent = lastRound.round;
+    const list = $("resultList");
+    list.innerHTML = "";
+    lastRound.results.forEach(r => {
+      const div = document.createElement("div");
+      div.className = "result-item";
+      div.innerHTML = `<strong>${r.icon} ${r.name}</strong> — ${r.action}<br><span style="color:#94a3b8">${r.result}</span>`;
+      list.appendChild(div);
+    });
+    $("roundOverlay").classList.add("show");
+  }
+
+  function showGameOver(state) {
+    $("winnerText").textContent = state.winner + " wins!";
+    renderLeaderboard(state.players, $("finalBoard"));
+    $("endOverlay").classList.add("show");
+    stopPoll();
+  }
+
+  function applyState(state) {
+    if (state.phase === "lobby") {
+      showScreen("lobby");
+      renderLobby(state);
+    } else if (state.phase === "playing") {
+      showScreen("game");
+      renderGame(state);
+      if (state.last_round) showRoundResults(state.last_round);
+    } else if (state.phase === "finished") {
+      showScreen("game");
+      renderGame(state);
+      showGameOver(state);
+    }
+  }
+
+  async function refreshState() {
+    if (!roomCode) return;
+    const url = `/games/business/api/state?room=${encodeURIComponent(roomCode)}&player_id=${encodeURIComponent(playerId)}`;
+    const state = await fetch(url).then(r => r.json());
+    if (state.error) {
+      localStorage.removeItem(STORAGE.room);
+      localStorage.removeItem(STORAGE.player);
+      showScreen("entry");
+      return;
+    }
+    applyState(state);
+  }
+
+  function startPoll() {
+    stopPoll();
+    pollTimer = setInterval(refreshState, 2000);
+  }
+
+  function stopPoll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    setRoundDeadline(null);
+  }
+
+  async function leaveSession() {
+    const inLobby = lastState && lastState.phase === "lobby";
+    const msg = isHost
+      ? (inLobby ? "Delete this room for everyone?" : "Leave this game? Your session will be cleared locally.")
+      : (inLobby ? "Leave this room?" : "Leave this game?");
+    if (!confirm(msg)) return;
+
+    if (roomCode && playerId) {
+      try {
+        await api("/games/business/api/leave", { room: roomCode, player_id: playerId });
+      } catch (_) { /* still clear locally */ }
+    }
+    clearSession();
+  }
+
+  async function createRoom() {
+    const name = $("nameInput").value.trim();
+    if (!name) return showError($("entryError"), "Enter your name.");
+    $("entryError").classList.add("hidden");
+    const res = await api("/games/business/api/create", { name });
+    if (res.error) return showError($("entryError"), res.error);
+    saveSession(res.room, res.player_id, name);
+    applyState(res.state);
+    startPoll();
+  }
+
+  async function joinRoom() {
+    const name = $("nameInput").value.trim();
+    const room = $("roomInput").value.trim().toUpperCase();
+    if (!name) return showError($("entryError"), "Enter your name.");
+    if (!room) return showError($("entryError"), "Enter a room code.");
+    $("entryError").classList.add("hidden");
+    const res = await api("/games/business/api/join", { room, name });
+    if (res.error) return showError($("entryError"), res.error);
+    saveSession(res.room, res.player_id, name);
+    applyState(res.state);
+    startPoll();
+  }
+
+  async function startGame() {
+    const res = await api("/games/business/api/start", { room: roomCode, player_id: playerId });
+    if (res.error) alert(res.error);
+    else applyState(res.state);
+  }
+
+  async function submitAction(action) {
+    const res = await api("/games/business/api/action", { room: roomCode, player_id: playerId, action });
+    if (res.error) alert(res.error);
+    else applyState(res.state);
+  }
+
+  $("createBtn").addEventListener("click", createRoom);
+  $("joinBtn").addEventListener("click", joinRoom);
+  $("startBtn").addEventListener("click", startGame);
+  $("leaveLobbyBtn").addEventListener("click", leaveSession);
+  $("leaveGameBtn").addEventListener("click", leaveSession);
+  $("dismissRoundBtn").addEventListener("click", () => $("roundOverlay").classList.remove("show"));
+  $("playAgainBtn").addEventListener("click", () => { clearSession(); window.location.href = "/games"; });
+
+  $("copyLinkBtn").addEventListener("click", () => {
+    const url = window.location.origin + "/games/business?room=" + roomCode;
+    navigator.clipboard.writeText(url).then(() => alert("Invite link copied!")).catch(() => prompt("Copy this link:", url));
+  });
+
+  $("backLink").addEventListener("click", (e) => {
+    if (roomCode) {
+      e.preventDefault();
+      stopPoll();
+      localStorage.removeItem(STORAGE.room);
+      localStorage.removeItem(STORAGE.player);
+      window.location.href = "/games";
+    }
+  });
+
+  // Pre-fill from URL or localStorage
+  const params = new URLSearchParams(window.location.search);
+  const urlRoom = params.get("room");
+  if (urlRoom) $("roomInput").value = urlRoom.toUpperCase();
+  const savedName = localStorage.getItem(STORAGE.name);
+  if (savedName) $("nameInput").value = savedName;
+
+  // Resume session if possible
+  if (roomCode && playerId) {
+    refreshState().then(() => startPoll());
+  }
+})();
+</script>
+</body>
+</html>

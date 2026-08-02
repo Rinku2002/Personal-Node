@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Memory Match</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh; background: #1e1b4b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9; padding: 12px 12px 24px; touch-action: manipulation;
+}
+.top-bar { max-width: 420px; margin: 0 auto 12px; display: flex; justify-content: space-between; align-items: center; }
+.back-link { color: #94a3b8; text-decoration: none; font-size: 14px; }
+.stats { font-size: 15px; font-weight: 600; color: #f472b6; }
+#board {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  max-width: 420px; margin: 0 auto;
+}
+.card {
+  aspect-ratio: 1; border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: #312e81; border: 2px solid #4338ca;
+  transition: transform 0.2s; -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.card.flipped, .card.matched { background: #4c1d95; border-color: #7c3aed; }
+.card.matched { opacity: 0.6; }
+.overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.9);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+}
+.overlay.hidden { display: none; }
+.overlay h2 { font-size: 26px; margin-bottom: 8px; }
+.overlay p { color: #94a3b8; margin-bottom: 20px; }
+.overlay button {
+  padding: 14px 32px; font-size: 16px; font-weight: 600; border: none;
+  border-radius: 10px; background: #ec4899; color: white; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="/games">← Games</a>
+  <span class="stats">Moves: <span id="moves">0</span></span>
+</div>
+<div id="board"></div>
+
+<div class="overlay" id="winOverlay">
+  <h2>You Win!</h2>
+  <p>Moves: <span id="finalMoves">0</span></p>
+  <button id="restartBtn">Play Again</button>
+</div>
+
+<script>
+(function () {
+  const EMOJIS = ["🍎","🍊","🍋","🍇","🍓","🍑","🥝","🍒"];
+  const board = document.getElementById("board");
+  const movesEl = document.getElementById("moves");
+  const winOverlay = document.getElementById("winOverlay");
+  let cards, flipped, lock, moves, matched;
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function init() {
+    const pairs = shuffle([...EMOJIS, ...EMOJIS]);
+    cards = pairs.map((emoji, i) => ({ id: i, emoji, matched: false }));
+    flipped = [];
+    lock = false;
+    moves = 0;
+    matched = 0;
+    movesEl.textContent = "0";
+    winOverlay.classList.add("hidden");
+    board.innerHTML = "";
+    cards.forEach((card, i) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.dataset.index = i;
+      el.addEventListener("click", () => flip(i, el));
+      board.appendChild(el);
+    });
+  }
+
+  function flip(i, el) {
+    if (lock || el.classList.contains("flipped") || el.classList.contains("matched")) return;
+    el.classList.add("flipped");
+    el.textContent = cards[i].emoji;
+    flipped.push({ i, el });
+    if (flipped.length === 2) {
+      moves++;
+      movesEl.textContent = moves;
+      lock = true;
+      const [a, b] = flipped;
+      if (cards[a.i].emoji === cards[b.i].emoji) {
+        a.el.classList.add("matched");
+        b.el.classList.add("matched");
+        matched += 2;
+        flipped = [];
+        lock = false;
+        if (matched === cards.length) {
+          document.getElementById("finalMoves").textContent = moves;
+          winOverlay.classList.remove("hidden");
+        }
+      } else {
+        setTimeout(() => {
+          a.el.classList.remove("flipped");
+          b.el.classList.remove("flipped");
+          a.el.textContent = "";
+          b.el.textContent = "";
+          flipped = [];
+          lock = false;
+        }, 700);
+      }
+    }
+  }
+
+  document.getElementById("restartBtn").addEventListener("click", init);
+  init();
+})();
+</script>
+</body>
+</html>

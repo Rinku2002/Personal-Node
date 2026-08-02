@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ludo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(165deg, #1a0a2e 0%, #16213e 50%, #0f172a 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9;
+  padding: 12px 14px 28px;
+  touch-action: manipulation;
+}
+
+.back-link { display: inline-block; color: #94a3b8; text-decoration: none; font-size: 14px; margin-bottom: 12px; }
+header { text-align: center; margin-bottom: 16px; }
+header h1 { font-size: 22px; font-weight: 700; color: #f472b6; }
+header p { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+.screen { display: none; max-width: 440px; margin: 0 auto; }
+.screen.active { display: block; }
+
+.card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+input {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid #334155; background: #1e293b; color: #f1f5f9;
+  font-size: 16px; margin-bottom: 12px;
+}
+
+.btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary { background: #f472b6; color: #1a1f35; }
+.btn-secondary { background: #334155; color: #f1f5f9; }
+.btn-danger { background: transparent; color: #f87171; border: 1px solid #7f1d1d; margin-top: 10px; }
+.btn-roll { background: #8b5cf6; color: #fff; font-size: 18px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:active:not(:disabled) { opacity: 0.85; }
+
+.divider { text-align: center; color: #64748b; font-size: 13px; margin: 16px 0; }
+.room-code { text-align: center; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #f472b6; margin: 8px 0; }
+.share-hint { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 12px; }
+
+.player-list { list-style: none; }
+.player-list li {
+  padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+}
+.player-list li:last-child { border-bottom: none; }
+.color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+.badge { font-size: 11px; background: #334155; padding: 2px 8px; border-radius: 999px; color: #94a3b8; }
+.badge.host { background: #831843; color: #fbcfe8; }
+.badge.you { background: #1e40af; color: #bfdbfe; }
+
+#boardWrap { display: flex; justify-content: center; margin-bottom: 14px; }
+#board { width: min(96vw, 400px); height: min(96vw, 400px); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+
+.turn-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; font-size: 14px;
+}
+.turn-bar .active-turn { font-weight: 700; }
+.timer { color: #f472b6; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.dice-display {
+  text-align: center; margin: 8px 0;
+  min-height: 72px; display: flex; align-items: center; justify-content: center;
+}
+.dice-face {
+  width: 64px; height: 64px; background: #fff; border-radius: 12px;
+  border: 2px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  padding: 8px; gap: 2px;
+}
+.dice-face .pip {
+  width: 10px; height: 10px; border-radius: 50%; background: #1e293b;
+  justify-self: center; align-self: center;
+}
+.dice-face .pip.hidden { visibility: hidden; }
+
+.event-msg {
+  text-align: center; font-size: 13px; color: #94a3b8;
+  margin-bottom: 12px; min-height: 18px;
+}
+
+.token-picker { margin-top: 10px; }
+.token-picker-title {
+  text-align: center; font-size: 14px; font-weight: 600; color: #f472b6;
+  margin-bottom: 10px;
+}
+.token-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.token-btn {
+  padding: 12px; border-radius: 10px; border: 2px solid #334155;
+  background: #1e293b; color: #f1f5f9; font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; text-align: left;
+}
+.token-btn .num {
+  width: 32px; height: 32px; border-radius: 50%; background: #f472b6; color: #1a1f35;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800;
+  flex-shrink: 0;
+}
+.token-btn.valid { border-color: #f472b6; background: rgba(244,114,182,0.15); }
+.token-btn.valid .num { background: #fbbf24; }
+.token-btn:active { opacity: 0.85; }
+#board { cursor: default; }
+#board.can-pick { cursor: pointer; }
+
+.waiting-msg { text-align: center; padding: 16px; color: #94a3b8; font-size: 14px; }
+.error { color: #f87171; font-size: 13px; margin-bottom: 10px; text-align: center; }
+.hidden { display: none !important; }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(10,15,30,0.92);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; padding: 20px;
+}
+.overlay.show { display: flex; }
+.overlay-card {
+  background: #1e293b; border-radius: 16px; padding: 24px;
+  max-width: 360px; width: 100%; border: 1px solid #334155; text-align: center;
+}
+.overlay-card h2 { font-size: 24px; margin-bottom: 8px; }
+.trophy { font-size: 56px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="/games" id="backLink">← Games</a>
+
+<header>
+  <h1>Ludo</h1>
+  <p>Classic 4-player board game · roll, move, capture, win</p>
+</header>
+
+<div id="entryScreen" class="screen active">
+  <div class="card">
+    <label>Your name</label>
+    <input id="nameInput" type="text" maxlength="20" placeholder="Enter your name" autocomplete="name">
+    <p id="entryError" class="error hidden"></p>
+    <button class="btn btn-primary" id="createBtn">Create Room</button>
+  </div>
+  <div class="divider">— or join a friend's room —</div>
+  <div class="card">
+    <label>Room code</label>
+    <input id="roomInput" type="text" maxlength="4" placeholder="e.g. ABCD" autocapitalize="characters" style="text-transform:uppercase; letter-spacing:4px; text-align:center; font-weight:700;">
+    <button class="btn btn-secondary" id="joinBtn">Join Room</button>
+  </div>
+</div>
+
+<div id="lobbyScreen" class="screen">
+  <div class="card">
+    <p class="share-hint">Share this code with up to 3 friends</p>
+    <div class="room-code" id="lobbyRoomCode">----</div>
+    <button class="btn btn-secondary" id="copyLinkBtn">Copy Invite Link</button>
+  </div>
+  <div class="card">
+    <h3 style="font-size:14px; color:#94a3b8; margin-bottom:8px;">Players (<span id="playerCount">0</span>/4)</h3>
+    <ul class="player-list" id="lobbyPlayers"></ul>
+  </div>
+  <button class="btn btn-primary hidden" id="startBtn">Start Game</button>
+  <p class="waiting-msg" id="lobbyWaiting">Waiting for host to start...</p>
+  <p class="waiting-msg hidden" id="lobbyHint"></p>
+  <button class="btn btn-danger" id="leaveLobbyBtn">Leave Room</button>
+</div>
+
+<div id="gameScreen" class="screen">
+  <div class="turn-bar">
+    <span id="turnLabel">Waiting...</span>
+    <span id="turnTimer" class="timer hidden"></span>
+  </div>
+
+  <div id="boardWrap"><canvas id="board"></canvas></div>
+
+  <p class="event-msg" id="eventMsg"></p>
+  <div class="dice-display" id="diceDisplay"></div>
+
+  <button class="btn btn-roll hidden" id="rollBtn">🎲 Roll Dice</button>
+  <div class="token-picker hidden" id="tokenPicker">
+    <p class="token-picker-title" id="tokenPickerTitle">Pick a token to move</p>
+    <div class="token-picker-grid" id="tokenPickerGrid"></div>
+  </div>
+  <p class="waiting-msg hidden" id="gameWaiting">Waiting for other players...</p>
+  <button class="btn btn-danger" id="leaveGameBtn">Leave Game</button>
+</div>
+
+<div class="overlay" id="endOverlay">
+  <div class="overlay-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winnerText">Game Over</h2>
+    <p style="color:#94a3b8; margin-bottom:16px;" id="winnerSub"></p>
+    <button class="btn btn-primary" id="playAgainBtn">Back to Games</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE = { room: "ludo_room", player: "ludo_player", name: "ludo_name" };
+
+  // 52 track cells on 15×15 grid (clockwise from red start)
+  const TRACK = [
+    [6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],
+    [0,7],[0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],
+    [7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],
+    [14,7],[14,8],[13,8],[12,8],[11,8],[10,8],[9,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],
+    [7,14],[6,14]
+  ];
+
+  const HOME_PATHS = [
+    [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+    [[1,7],[2,7],[3,7],[4,7],[5,7],[7,8]],
+    [[7,1],[7,2],[7,3],[7,4],[7,5],[7,8]],
+    [[13,7],[12,7],[11,7],[10,7],[9,7],[7,8]]
+  ];
+
+  const BASES = [
+    [[11,11],[12,11],[11,12],[12,12]],
+    [[2,2],[3,2],[2,3],[3,3]],
+    [[2,11],[3,11],[2,12],[3,12]],
+    [[11,2],[12,2],[11,3],[12,3]]
+  ];
+
+  const START_POS = [0, 13, 26, 39];
+  const SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+  const BASE_TINTS = ["#fecaca", "#bbf7d0", "#fef08a", "#bfdbfe"];
+  const DICE_PIPS = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8],
+  };
+
+  let roomCode = localStorage.getItem(STORAGE.room) || "";
+  let playerId = localStorage.getItem(STORAGE.player) || "";
+  let pollTimer = null;
+  let timerInterval = null;
+  let turnDeadline = null;
+  let lastState = null;
+  let isHost = false;
+  let tokenHits = [];
+
+  const $ = id => document.getElementById(id);
+  const canvas = $("board");
+  const ctx = canvas.getContext("2d");
+
+  function saveSession(room, player, name) {
+    roomCode = room;
+    playerId = player;
+    localStorage.setItem(STORAGE.room, room);
+    localStorage.setItem(STORAGE.player, player);
+    localStorage.setItem(STORAGE.name, name);
+  }
+
+  function clearSession() {
+    roomCode = "";
+    playerId = "";
+    localStorage.removeItem(STORAGE.room);
+    localStorage.removeItem(STORAGE.player);
+    stopPoll();
+    $("endOverlay").classList.remove("show");
+    showScreen("entry");
+  }
+
+  function updateLeaveButtons(state) {
+    isHost = state.you.is_host;
+    const hostLabel = state.phase === "lobby" ? "Delete Room" : "Leave Game";
+    const guestLabel = state.phase === "lobby" ? "Leave Room" : "Leave Game";
+    const label = isHost ? hostLabel : guestLabel;
+    $("leaveLobbyBtn").textContent = label;
+    $("leaveGameBtn").textContent = label;
+  }
+
+  function showScreen(name) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    $(name + "Screen").classList.add("active");
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  async function api(path, body) {
+    const opts = body
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      : {};
+    return fetch(path, opts).then(r => r.json());
+  }
+
+  function resizeCanvas() {
+    const size = Math.min(window.innerWidth * 0.96, 400);
+    canvas.width = size;
+    canvas.height = size;
+    if (lastState) drawBoard(lastState);
+  }
+
+  function tokenRadius() {
+    return canvas.width / 15 * 0.44;
+  }
+
+  function cellPx(col, row) {
+    const s = canvas.width / 15;
+    return { x: col * s + s / 2, y: row * s + s / 2, s, r: s * 0.34 };
+  }
+
+  function drawCell(col, row, fill, stroke) {
+    const { x, y, s } = cellPx(col, row);
+    const pad = s * 0.06;
+    ctx.fillStyle = fill;
+    ctx.fillRect(col * s + pad, row * s + pad, s - pad * 2, s - pad * 2);
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(col * s + pad, row * s + pad, s - pad * 2, s - pad * 2);
+    }
+  }
+
+  function tokenLocationLabel(tok) {
+    if (tok.home) return "In base";
+    if (tok.finished) return "Finished";
+    if (tok.home_pos != null) return `Home stretch (${tok.home_pos + 1}/6)`;
+    return "On track";
+  }
+
+  function validTokenSet(state) {
+    if (!state.you.your_turn || state.turn_phase !== "move") return new Set();
+    return new Set(state.valid_moves.map(m => m.token));
+  }
+
+  function drawBoard(state) {
+    const s = canvas.width / 15;
+    tokenHits = [];
+    const validTokens = validTokenSet(state);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#fffbeb";
+    ctx.fillRect(0, 0, canvas.width, canvas.width);
+
+    // Colored home corners (muted so tokens stand out)
+    const baseAreas = [[6, 6, 9, 9], [0, 0, 6, 6], [0, 6, 6, 9], [6, 0, 9, 6]];
+    baseAreas.forEach((area, i) => {
+      ctx.fillStyle = BASE_TINTS[i];
+      ctx.fillRect(area[0] * s, area[1] * s, (area[2] - area[0]) * s, (area[3] - area[1]) * s);
+    });
+
+    // Neutral white track + cross arms
+    for (let row = 0; row < 15; row++) {
+      for (let col = 0; col < 15; col++) {
+        const inCross = (col >= 6 && col <= 8) || (row >= 6 && row <= 8);
+        const inBase =
+          (col < 6 && row < 6) || (col < 6 && row > 8) ||
+          (col > 8 && row < 6) || (col > 8 && row > 8);
+        if (inCross && !inBase) {
+          drawCell(col, row, "#ffffff", "#cbd5e1");
+        }
+      }
+    }
+
+    // Center finish
+    ctx.fillStyle = "#f8fafc";
+    ctx.beginPath();
+    ctx.moveTo(7 * s, 6 * s); ctx.lineTo(8 * s, 6 * s); ctx.lineTo(9 * s, 7 * s);
+    ctx.lineTo(9 * s, 8 * s); ctx.lineTo(8 * s, 9 * s); ctx.lineTo(7 * s, 9 * s);
+    ctx.lineTo(6 * s, 8 * s); ctx.lineTo(6 * s, 7 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Safe squares on main track
+    TRACK.forEach((cell, i) => {
+      if (SAFE.has(i)) {
+        drawCell(cell[0], cell[1], "#fef9c3", "#eab308");
+      }
+    });
+
+    // Start squares — colored marker so entry points are obvious
+    START_POS.forEach((idx, ci) => {
+      const cell = TRACK[idx];
+      drawCell(cell[0], cell[1], "#ffffff", state.colors[ci].hex);
+      const { x, y } = cellPx(cell[0], cell[1]);
+      ctx.fillStyle = state.colors[ci].hex;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Home stretch — white cells with a thin color stripe
+    HOME_PATHS.forEach((path, ci) => {
+      const color = state.colors[ci].hex;
+      path.forEach(cell => {
+        drawCell(cell[0], cell[1], "#ffffff", "#cbd5e1");
+        const { x, y } = cellPx(cell[0], cell[1]);
+        ctx.fillStyle = color;
+        ctx.fillRect(x - s * 0.22, y - s * 0.04, s * 0.44, s * 0.08);
+      });
+    });
+
+    // Base token slots — white circles with colored ring
+    BASES.forEach((spots, ci) => {
+      const color = state.colors[ci].hex;
+      spots.forEach(([col, row]) => {
+        const { x, y, r } = cellPx(col, row);
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.88, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      });
+    });
+
+    // Draw tokens on top
+    const stacks = {};
+    state.players.forEach(p => {
+      p.tokens.forEach((tok, ti) => {
+        let key, pos;
+        if (tok.home) {
+          pos = cellPx(BASES[p.color][ti][0], BASES[p.color][ti][1]);
+          key = `base-${p.color}-${ti}`;
+        } else if (tok.finished) {
+          pos = cellPx(7, 8);
+          key = `center-${p.color}-${ti}`;
+        } else if (tok.home_pos != null) {
+          const cell = HOME_PATHS[p.color][tok.home_pos];
+          pos = cellPx(cell[0], cell[1]);
+          key = `home-${p.color}-${tok.home_pos}`;
+        } else if (tok.track_pos != null) {
+          const cell = TRACK[tok.track_pos];
+          pos = cellPx(cell[0], cell[1]);
+          key = `track-${tok.track_pos}-${p.color}`;
+        } else return;
+
+        if (!stacks[key]) stacks[key] = [];
+        stacks[key].push({
+          pos,
+          color: p.color_hex,
+          you: p.you,
+          number: ti + 1,
+          tokenIdx: ti,
+          highlight: p.you && validTokens.has(ti),
+          clickable: p.you && validTokens.has(ti),
+        });
+      });
+    });
+
+    Object.values(stacks).forEach(group => {
+      group.forEach((tok, i) => {
+        const offset = (i - (group.length - 1) / 2) * 7;
+        const x = tok.pos.x + offset;
+        const y = tok.pos.y;
+        drawToken(x, y, tok.color, tok.you, tok.number, tok.highlight);
+        if (tok.clickable) {
+          tokenHits.push({
+            x, y,
+            r: tokenRadius() + 8,
+            tokenIdx: tok.tokenIdx,
+          });
+        }
+      });
+    });
+  }
+
+  function drawToken(x, y, color, you, number, highlight) {
+    const radius = tokenRadius();
+    ctx.save();
+
+    if (highlight) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 2;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.shadowColor = "transparent";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#0f172a";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.52, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(15,23,42,0.25)";
+    ctx.stroke();
+
+    const fontSize = Math.max(13, radius * 0.72);
+    ctx.font = `900 ${fontSize}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f172a";
+    ctx.fillText(String(number), x, y + 1);
+
+    if (you && !highlight) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function renderDice(value) {
+    const el = $("diceDisplay");
+    if (!value) {
+      el.innerHTML = "";
+      return;
+    }
+    const pips = DICE_PIPS[value] || [];
+    const cells = Array.from({ length: 9 }, (_, i) =>
+      `<span class="pip${pips.includes(i) ? "" : " hidden"}"></span>`
+    ).join("");
+    el.innerHTML = `<div class="dice-face" aria-label="Dice showing ${value}">${cells}</div>`;
+  }
+
+  function renderLobby(state) {
+    lastState = state;
+    updateLeaveButtons(state);
+    $("lobbyRoomCode").textContent = state.room;
+    $("playerCount").textContent = state.player_count;
+    const list = $("lobbyPlayers");
+    list.innerHTML = "";
+    state.players.forEach((p, i) => {
+      const li = document.createElement("li");
+      const badges = [];
+      if (i === 0) badges.push('<span class="badge host">Host</span>');
+      if (p.you) badges.push('<span class="badge you">You</span>');
+      li.innerHTML = `<span><span class="color-dot" style="background:${p.color_hex}"></span>${p.name}</span><span>${badges.join(" ")}</span>`;
+      list.appendChild(li);
+    });
+
+    const isHost = state.you.is_host;
+    const full = state.player_count >= state.max_players;
+    const canStart = state.player_count >= 2;
+    $("startBtn").classList.toggle("hidden", !isHost);
+    $("startBtn").disabled = !canStart;
+    $("startBtn").textContent = full ? "Start Game (4/4)" : canStart ? `Start Game (${state.player_count}/4)` : "Waiting for players...";
+    $("lobbyWaiting").classList.toggle("hidden", isHost);
+    $("lobbyHint").classList.toggle("hidden", full);
+    if (!full) {
+      const needed = state.max_players - state.player_count;
+      $("lobbyHint").textContent = needed === 1 ? "1 more friend can join." : `${needed} more friends can join. Share the link!`;
+    }
+  }
+
+  function updateTimer(secondsLeft) {
+    const el = $("turnTimer");
+    if (secondsLeft == null) {
+      turnDeadline = null;
+      el.classList.add("hidden");
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      return;
+    }
+    turnDeadline = Date.now() + secondsLeft * 1000;
+    if (!timerInterval) timerInterval = setInterval(tickTimer, 1000);
+    tickTimer();
+  }
+
+  function tickTimer() {
+    const el = $("turnTimer");
+    if (!turnDeadline) return;
+    const left = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
+    el.textContent = left + "s";
+    el.classList.remove("hidden");
+    if (left <= 0) refreshState();
+  }
+
+  function renderGame(state) {
+    updateLeaveButtons(state);
+    lastState = state;
+    drawBoard(state);
+
+    const yourTurn = state.you.your_turn;
+    const cur = state.players.find(p => p.id === state.current_player_id);
+    $("turnLabel").innerHTML = cur
+      ? `<span class="active-turn" style="color:${cur.color_hex}">${cur.name}${yourTurn ? " — your turn!" : ""}</span>`
+      : "Game over";
+
+    $("eventMsg").textContent = state.last_event || "";
+    renderDice(state.dice ?? state.last_roll);
+
+    const canRoll = yourTurn && state.turn_phase === "roll";
+    const canMove = yourTurn && state.turn_phase === "move";
+
+    $("rollBtn").classList.toggle("hidden", !canRoll);
+    $("gameWaiting").classList.toggle("hidden", yourTurn || state.phase !== "playing");
+    if (!yourTurn && state.phase === "playing") {
+      $("gameWaiting").textContent = `Waiting for ${state.current_player_name}...`;
+    }
+
+    const picker = $("tokenPicker");
+    const grid = $("tokenPickerGrid");
+    grid.innerHTML = "";
+    picker.classList.toggle("hidden", !canMove);
+    canvas.classList.toggle("can-pick", canMove);
+
+    if (canMove && state.valid_moves.length) {
+      const me = state.players.find(p => p.you);
+      const dice = state.dice ?? state.last_roll;
+      $("tokenPickerTitle").textContent =
+        state.valid_moves.length === 1
+          ? `You rolled ${dice} — move token ${state.valid_moves[0].token + 1}`
+          : `You rolled ${dice} — pick a token (see numbers on board)`;
+
+      state.valid_moves.forEach(m => {
+        const btn = document.createElement("button");
+        btn.className = "token-btn valid";
+        const tok = me.tokens[m.token];
+        btn.innerHTML = `
+          <span class="num">${m.token + 1}</span>
+          <span>Token ${m.token + 1}<br><small style="color:#94a3b8;font-weight:400">${tokenLocationLabel(tok)}</small></span>
+        `;
+        btn.addEventListener("click", () => moveToken(m.token));
+        grid.appendChild(btn);
+      });
+    }
+
+    updateTimer(state.phase === "playing" ? state.turn_seconds_left : null);
+  }
+
+  function applyState(state) {
+    if (state.phase === "lobby") {
+      showScreen("lobby");
+      renderLobby(state);
+    } else if (state.phase === "playing") {
+      showScreen("game");
+      renderGame(state);
+    } else if (state.phase === "finished") {
+      showScreen("game");
+      renderGame(state);
+      $("winnerText").textContent = state.winner + " wins!";
+      $("winnerSub").textContent = state.you.player_id && state.players.find(p => p.you && p.name === state.winner)
+        ? "Congratulations!" : "Better luck next time!";
+      $("endOverlay").classList.add("show");
+      stopPoll();
+    }
+  }
+
+  async function refreshState() {
+    if (!roomCode) return;
+    const url = `/games/ludo/api/state?room=${encodeURIComponent(roomCode)}&player_id=${encodeURIComponent(playerId)}`;
+    const state = await fetch(url).then(r => r.json());
+    if (state.error) {
+      localStorage.removeItem(STORAGE.room);
+      localStorage.removeItem(STORAGE.player);
+      showScreen("entry");
+      return;
+    }
+    applyState(state);
+  }
+
+  function startPoll() {
+    stopPoll();
+    pollTimer = setInterval(refreshState, 1500);
+  }
+
+  function stopPoll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    updateTimer(null);
+  }
+
+  async function leaveSession() {
+    const inLobby = lastState && lastState.phase === "lobby";
+    const msg = isHost
+      ? (inLobby ? "Delete this room for everyone?" : "Leave this game? Your session will be cleared locally.")
+      : (inLobby ? "Leave this room?" : "Leave this game?");
+    if (!confirm(msg)) return;
+
+    if (roomCode && playerId) {
+      try {
+        await api("/games/ludo/api/leave", { room: roomCode, player_id: playerId });
+      } catch (_) { /* still clear locally */ }
+    }
+    clearSession();
+  }
+
+  async function createRoom() {
+    const name = $("nameInput").value.trim();
+    if (!name) return showError($("entryError"), "Enter your name.");
+    $("entryError").classList.add("hidden");
+    const res = await api("/games/ludo/api/create", { name });
+    if (res.error) return showError($("entryError"), res.error);
+    saveSession(res.room, res.player_id, name);
+    applyState(res.state);
+    startPoll();
+  }
+
+  async function joinRoom() {
+    const name = $("nameInput").value.trim();
+    const room = $("roomInput").value.trim().toUpperCase();
+    if (!name) return showError($("entryError"), "Enter your name.");
+    if (!room) return showError($("entryError"), "Enter a room code.");
+    $("entryError").classList.add("hidden");
+    const res = await api("/games/ludo/api/join", { room, name });
+    if (res.error) return showError($("entryError"), res.error);
+    saveSession(res.room, res.player_id, name);
+    applyState(res.state);
+    startPoll();
+  }
+
+  async function startGame() {
+    const res = await api("/games/ludo/api/start", { room: roomCode, player_id: playerId });
+    if (res.error) alert(res.error);
+    else applyState(res.state);
+  }
+
+  async function rollDice() {
+    const res = await api("/games/ludo/api/roll", { room: roomCode, player_id: playerId });
+    if (res.error) alert(res.error);
+    else applyState(res.state);
+  }
+
+  async function moveToken(idx) {
+    const res = await api("/games/ludo/api/move", { room: roomCode, player_id: playerId, token: idx });
+    if (res.error) alert(res.error);
+    else applyState(res.state);
+  }
+
+  canvas.addEventListener("click", (e) => {
+    if (!tokenHits.length) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    let best = null;
+    let bestDist = Infinity;
+    tokenHits.forEach(hit => {
+      const dist = Math.hypot(x - hit.x, y - hit.y);
+      if (dist <= hit.r && dist < bestDist) {
+        best = hit;
+        bestDist = dist;
+      }
+    });
+    if (best) moveToken(best.tokenIdx);
+  });
+
+  $("createBtn").addEventListener("click", createRoom);
+  $("joinBtn").addEventListener("click", joinRoom);
+  $("startBtn").addEventListener("click", startGame);
+  $("rollBtn").addEventListener("click", rollDice);
+  $("leaveLobbyBtn").addEventListener("click", leaveSession);
+  $("leaveGameBtn").addEventListener("click", leaveSession);
+  $("playAgainBtn").addEventListener("click", () => { clearSession(); window.location.href = "/games"; });
+  $("copyLinkBtn").addEventListener("click", () => {
+    const url = window.location.origin + "/games/ludo?room=" + roomCode;
+    navigator.clipboard.writeText(url).then(() => alert("Invite link copied!")).catch(() => prompt("Copy this link:", url));
+  });
+
+  $("backLink").addEventListener("click", (e) => {
+    if (roomCode) {
+      e.preventDefault();
+      stopPoll();
+      localStorage.removeItem(STORAGE.room);
+      localStorage.removeItem(STORAGE.player);
+      window.location.href = "/games";
+    }
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  const params = new URLSearchParams(window.location.search);
+  const urlRoom = params.get("room");
+  if (urlRoom) $("roomInput").value = urlRoom.toUpperCase();
+  const savedName = localStorage.getItem(STORAGE.name);
+  if (savedName) $("nameInput").value = savedName;
+
+  if (roomCode && playerId) {
+    refreshState().then(() => startPoll());
+  }
+})();
+</script>
+</body>
+</html>

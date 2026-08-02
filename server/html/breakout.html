@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>Breakout</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh; background: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9; padding: 12px; touch-action: none; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center;
+}
+.top-bar { width: 100%; max-width: 420px; display: flex; justify-content: space-between; margin-bottom: 8px; }
+.back-link { color: #94a3b8; text-decoration: none; font-size: 14px; }
+.score { font-size: 16px; font-weight: 600; color: #f87171; }
+#gameCanvas {
+  width: 100%; max-width: 420px; aspect-ratio: 3/4;
+  border-radius: 10px; background: #1e293b; border: 2px solid #334155; touch-action: none;
+}
+.overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.88);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+}
+.overlay.hidden { display: none; }
+.overlay h2 { font-size: 26px; margin-bottom: 8px; }
+.overlay p { color: #94a3b8; margin-bottom: 20px; text-align: center; padding: 0 20px; }
+.overlay button {
+  padding: 14px 32px; font-size: 16px; font-weight: 600; border: none;
+  border-radius: 10px; background: #ef4444; color: white; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="/games">← Games</a>
+  <span class="score">Score: <span id="score">0</span></span>
+</div>
+<canvas id="gameCanvas" width="360" height="480"></canvas>
+
+<div class="overlay" id="startOverlay">
+  <h2>Breakout</h2>
+  <p>Drag or tap left/right to move the paddle. Break all bricks!</p>
+  <button id="startBtn">Play</button>
+</div>
+
+<div class="overlay hidden" id="endOverlay">
+  <h2 id="endTitle">Game Over</h2>
+  <p>Score: <span id="finalScore">0</span></p>
+  <button id="restartBtn">Play Again</button>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const scoreEl = document.getElementById("score");
+
+  let paddle, ball, bricks, score, running, animId;
+  const PADDLE_W = 70, PADDLE_H = 12, BALL_R = 7;
+  const ROWS = 5, COLS = 7;
+  const BRICK_W = (W - 20) / COLS - 4;
+  const BRICK_H = 18;
+  const COLORS = ["#ef4444","#f97316","#eab308","#22c55e","#3b82f6"];
+
+  function makeBricks() {
+    bricks = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        bricks.push({ x: 10 + c * (BRICK_W + 4), y: 40 + r * (BRICK_H + 4), w: BRICK_W, h: BRICK_H, alive: true, color: COLORS[r] });
+      }
+    }
+  }
+
+  function reset() {
+    paddle = { x: W / 2 - PADDLE_W / 2, y: H - 30, w: PADDLE_W, h: PADDLE_H };
+    ball = { x: W / 2, y: H - 50, dx: 3, dy: -3, r: BALL_R };
+    score = 0;
+    scoreEl.textContent = "0";
+    makeBricks();
+    running = true;
+  }
+
+  function draw() {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, W, H);
+    bricks.forEach(b => {
+      if (!b.alive) return;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+    });
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fill();
+  }
+
+  function update() {
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+    if (ball.x - ball.r < 0 || ball.x + ball.r > W) ball.dx *= -1;
+    if (ball.y - ball.r < 0) ball.dy *= -1;
+    if (ball.y + ball.r > H) { endGame(false); return; }
+
+    if (ball.y + ball.r >= paddle.y && ball.y - ball.r <= paddle.y + paddle.h &&
+        ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
+      ball.dy = -Math.abs(ball.dy);
+      const hit = (ball.x - paddle.x) / paddle.w - 0.5;
+      ball.dx = hit * 6;
+    }
+
+    bricks.forEach(b => {
+      if (!b.alive) return;
+      if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+          ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+        b.alive = false;
+        ball.dy *= -1;
+        score += 10;
+        scoreEl.textContent = score;
+      }
+    });
+
+    if (bricks.every(b => !b.alive)) endGame(true);
+  }
+
+  function loop() {
+    if (!running) return;
+    update();
+    draw();
+    animId = requestAnimationFrame(loop);
+  }
+
+  function endGame(won) {
+    running = false;
+    cancelAnimationFrame(animId);
+    document.getElementById("endTitle").textContent = won ? "You Win!" : "Game Over";
+    document.getElementById("finalScore").textContent = score;
+    document.getElementById("endOverlay").classList.remove("hidden");
+  }
+
+  function startGame() {
+    document.getElementById("startOverlay").classList.add("hidden");
+    document.getElementById("endOverlay").classList.add("hidden");
+    reset();
+    draw();
+    cancelAnimationFrame(animId);
+    loop();
+  }
+
+  function movePaddle(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (clientX - rect.left) * (W / rect.width);
+    paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
+  }
+
+  canvas.addEventListener("mousemove", e => { if (running) movePaddle(e.clientX); });
+  canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+    if (running) movePaddle(e.touches[0].clientX);
+  }, { passive: false });
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("restartBtn").addEventListener("click", startGame);
+})();
+</script>
+</body>
+</html>

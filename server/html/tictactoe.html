@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tic Tac Toe</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh; background: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9; padding: 12px; touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center;
+}
+.top-bar { width: 100%; max-width: 360px; display: flex; justify-content: space-between; margin-bottom: 16px; }
+.back-link { color: #94a3b8; text-decoration: none; font-size: 14px; }
+.status { font-size: 16px; font-weight: 600; color: #a78bfa; }
+#board {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  width: 100%; max-width: 360px;
+}
+.cell {
+  aspect-ratio: 1; background: #1e293b; border: 2px solid #334155;
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 700; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cell.x { color: #38bdf8; }
+.cell.o { color: #f472b6; }
+.cell:active { background: #334155; }
+#resetBtn {
+  margin-top: 20px; padding: 12px 28px; font-size: 15px; font-weight: 600;
+  border: none; border-radius: 10px; background: #8b5cf6; color: white; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="/games">← Games</a>
+  <span class="status" id="status">Your turn (X)</span>
+</div>
+<div id="board"></div>
+<button id="resetBtn">New Game</button>
+
+<script>
+(function () {
+  const board = document.getElementById("board");
+  const status = document.getElementById("status");
+  const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  let cells, gameOver;
+
+  function init() {
+    cells = Array(9).fill("");
+    gameOver = false;
+    status.textContent = "Your turn (X)";
+    board.innerHTML = "";
+    for (let i = 0; i < 9; i++) {
+      const el = document.createElement("div");
+      el.className = "cell";
+      el.addEventListener("click", () => play(i, el));
+      board.appendChild(el);
+    }
+  }
+
+  function winner(b) {
+    for (const [a, c, d] of WINS) {
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+    }
+    return b.every(v => v) ? "draw" : null;
+  }
+
+  function play(i, el) {
+    if (gameOver || cells[i]) return;
+    cells[i] = "X";
+    el.textContent = "X";
+    el.classList.add("x");
+    const w = winner(cells);
+    if (w) return end(w);
+    status.textContent = "Computer thinking...";
+    gameOver = true;
+    setTimeout(() => aiMove(), 400);
+  }
+
+  function aiMove() {
+    const empty = cells.map((v, i) => v ? null : i).filter(v => v !== null);
+    let pick;
+    for (const i of empty) {
+      cells[i] = "O";
+      if (winner(cells) === "O") { cells[i] = ""; pick = i; break; }
+      cells[i] = "";
+    }
+    if (pick === undefined) {
+      for (const i of empty) {
+        cells[i] = "X";
+        if (winner(cells) === "X") { cells[i] = ""; pick = i; break; }
+        cells[i] = "";
+      }
+    }
+    if (pick === undefined) pick = empty.includes(4) ? 4 : empty[Math.floor(Math.random() * empty.length)];
+    cells[pick] = "O";
+    const el = board.children[pick];
+    el.textContent = "O";
+    el.classList.add("o");
+    const w = winner(cells);
+    if (w) return end(w);
+    gameOver = false;
+    status.textContent = "Your turn (X)";
+  }
+
+  function end(w) {
+    gameOver = true;
+    if (w === "draw") status.textContent = "It's a draw!";
+    else if (w === "X") status.textContent = "You win!";
+    else status.textContent = "Computer wins!";
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", init);
+  init();
+})();
+</script>
+</body>
+</html>
