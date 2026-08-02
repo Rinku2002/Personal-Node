@@ -461,14 +461,25 @@ input {
     });
 
     Object.values(stacks).forEach(group => {
+      // During your turn, draw your token last so it appears on top.
+      if (state.you.your_turn) {
+        group.sort((a, b) => {
+          if (a.you === b.you) return 0;
+          return a.you ? 1 : -1;   // your token goes last
+        });
+      }
+
       group.forEach((tok, i) => {
         const offset = (i - (group.length - 1) / 2) * 7;
         const x = tok.pos.x + offset;
         const y = tok.pos.y;
+
         drawToken(x, y, tok.color, tok.you, tok.number, tok.highlight);
+
         if (tok.clickable) {
           tokenHits.push({
-            x, y,
+            x,
+            y,
             r: tokenRadius() + 8,
             tokenIdx: tok.tokenIdx,
           });
