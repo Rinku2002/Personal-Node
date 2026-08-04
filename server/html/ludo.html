@@ -435,8 +435,22 @@ input {
           pos = cellPx(BASES[p.color][ti][0], BASES[p.color][ti][1]);
           key = `base-${p.color}-${ti}`;
         } else if (tok.finished) {
-          pos = cellPx(7, 8);
-          key = `center-${p.color}-${ti}`;
+          const offsets = [
+              [-0.25, -0.25],
+              [ 0.25, -0.25],
+              [-0.25,  0.25],
+              [ 0.25,  0.25]
+          ];
+
+          const base = cellPx(7, 8);
+          const cell = canvas.width / 15;
+
+          pos = {
+              x: base.x + offsets[ti][0] * cell,
+              y: base.y + offsets[ti][1] * cell
+          };
+
+          key = `finished-${p.color}-${ti}`;
         } else if (tok.home_pos != null) {
           const cell = HOME_PATHS[p.color][tok.home_pos];
           pos = cellPx(cell[0], cell[1]);
